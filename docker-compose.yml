@@ -1,4 +1,4 @@
-version: '3.2'
+version: "3"
 
 services:
   elasticsearch:
@@ -7,13 +7,8 @@ services:
       args:
         ELK_VERSION: $ELK_VERSION
     volumes:
-      - type: bind
-        source: ./elasticsearch/config/elasticsearch.yml
-        target: /usr/share/elasticsearch/config/elasticsearch.yml
-        read_only: true
-      - type: volume
-        source: elasticsearch
-        target: /usr/share/elasticsearch/data
+      - ./elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+      - ./elasticsearch/data:/usr/share/elasticsearch/data:rw
     ports:
       - "9200:9200"
       - "9300:9300"
@@ -24,7 +19,7 @@ services:
       # see: https://www.elastic.co/guide/en/elasticsearch/reference/current/bootstrap-checks.html
       discovery.type: single-node
     networks:
-      - elk
+      - default
 
   logstash:
     build:
@@ -32,14 +27,8 @@ services:
       args:
         ELK_VERSION: $ELK_VERSION
     volumes:
-      - type: bind
-        source: ./logstash/config/logstash.yml
-        target: /usr/share/logstash/config/logstash.yml
-        read_only: true
-      - type: bind
-        source: ./logstash/pipeline
-        target: /usr/share/logstash/pipeline
-        read_only: true
+      - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
     ports:
       - "5044:5044"
       - "5000:5000/tcp"
@@ -48,30 +37,23 @@ services:
     environment:
       LS_JAVA_OPTS: "-Xmx256m -Xms256m"
     networks:
-      - elk
+      - default
     depends_on:
       - elasticsearch
 
-  grafana:
+  kibana:
     build:
-      context: grafana/
+      context: kibana/
       args:
         ELK_VERSION: $ELK_VERSION
     volumes:
-      - type: volume
-        source: grafana
-        target: /var/lib/grafana
+      - ./kibana/config/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
     ports:
-      - "3000:3000"
+      - "5601:5601"
     networks:
-      - elk
+      - default
     depends_on:
       - elasticsearch
 
 networks:
-  elk:
-    driver: bridge
-
-volumes:
-  elasticsearch:
-  grafana:
+  default:
